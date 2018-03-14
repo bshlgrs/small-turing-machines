@@ -1,0 +1,20 @@
+-- data Rational = Rational Integer Integer
+--   deriving (Show, Eq)
+
+-- instance Ord Rational where
+--   compare (Rational n1 d1) (Rational n2 d2) = compare (n1 * d2) (n2 * d1)
+
+-- makeRational :: Integer -> Integer -> Rational
+-- makeRational n d = Rational (n `div` gcd') (d `div` gcd')
+--   where gcd' = gcd n d
+
+-- -- turns out gcd is built into Haskell
+-- myGcd :: Integer -> Integer -> Integer
+-- myGcd a 0 = a
+-- myGcd a b = myGcd b (a `mod` b)
+
+-- complexity :: Rational -> Integer
+-- complexity (Rational n d) = max (abs n) (abs d)
+
+-- setComplexity :: Set Rational -> Integer
+-- setComplexity set = maximum $ 0:(map complexity set)

@@ -2,7 +2,6 @@ module Friedman (
 
 ) where
 
-import Prelude hiding (Rational)
 import Data.List (nub, genericTake)
 type Set a = [a]
 type Graph a = [(a, a)]
@@ -37,27 +36,6 @@ allBinaryListsOfLength n = do
 isSetFree :: (Eq a) => Set a -> Graph a -> Bool
 isSetFree set graph = not $ or [elem (x, y) graph || elem (y, x) graph
                                  | x <- set, y <- set]
-
--- data Rational = Rational Integer Integer
---   deriving (Show, Eq)
-
--- instance Ord Rational where
---   compare (Rational n1 d1) (Rational n2 d2) = compare (n1 * d2) (n2 * d1)
-
--- makeRational :: Integer -> Integer -> Rational
--- makeRational n d = Rational (n `div` gcd') (d `div` gcd')
---   where gcd' = gcd n d
-
--- -- turns out gcd is built into Haskell
--- myGcd :: Integer -> Integer -> Integer
--- myGcd a 0 = a
--- myGcd a b = myGcd b (a `mod` b)
-
--- complexity :: Rational -> Integer
--- complexity (Rational n d) = max (abs n) (abs d)
-
--- setComplexity :: Set Rational -> Integer
--- setComplexity set = maximum $ 0:(map complexity set)
 
 factorial :: Integer -> Integer
 factorial 0 = 1
