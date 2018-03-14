@@ -1,0 +1,23 @@
+(Rec
+  [$main$ExampleModule$+
+    (Lam $_in$x
+      (Lam $_in$y
+        (Case $_in$x
+          [
+            (Alt (Datacon $main$ExampleModule$Z) [] $_in$y)
+            (Alt (Datacon $main$ExampleModule$S) [$_in$x2]
+              (App $main$ExampleModule$S
+                (App
+                  (App $main$ExampleModule$+ $_in$x2)
+                  $_in$y
+                )
+              )
+            )
+          ]
+        )
+       )
+    )
+  ]
+)
+
++ := \f x y -> x y (\w -> S ((f x2) y))
