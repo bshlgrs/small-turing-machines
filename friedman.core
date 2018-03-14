@@ -1,0 +1,477 @@
+
+-- RHS size: {terms: 1, types: 0, coercions: 0}
+lvl :: Integer
+lvl = 8
+
+-- RHS size: {terms: 1, types: 0, coercions: 0}
+lvl1 :: Integer
+lvl1 = 1
+
+-- RHS size: {terms: 1, types: 0, coercions: 0}
+friedmanCounterexample2 :: Integer
+friedmanCounterexample2 = 0
+
+-- RHS size: {terms: 15, types: 4, coercions: 0}
+lvl2 :: Integer -> Integer
+lvl2 =
+  \ (x :: Integer) ->
+    case ltInteger# x friedmanCounterexample2 of wild { __DEFAULT ->
+    case tagToEnum# wild of _ {
+      False -> plusInteger x lvl1;
+      True -> x
+    }
+    }
+
+-- RHS size: {terms: 1, types: 0, coercions: 0}
+lvl3 :: Integer
+lvl3 = -1
+
+Rec {
+-- RHS size: {terms: 76, types: 40, coercions: 0}
+friedmanCounterexample_allNaturalTrios'
+  :: Integer -> Integer -> Integer -> [(Integer, Integer, Integer)]
+friedmanCounterexample_allNaturalTrios' =
+  \ (a :: Integer) (ds :: Integer) (ds1 :: Integer) ->
+    case eqInteger# ds friedmanCounterexample2 of wild { __DEFAULT ->
+    let {
+      fail :: Void# -> [(Integer, Integer, Integer)]
+      fail =
+        \ _ ->
+          case eqInteger# ds1 friedmanCounterexample2 of wild1 { __DEFAULT ->
+          case tagToEnum# wild1 of _ {
+            False ->
+              : (a, ds, ds1)
+                (friedmanCounterexample_allNaturalTrios'
+                   a ds (minusInteger ds1 lvl1));
+            True ->
+              : (a, ds, friedmanCounterexample2)
+                (friedmanCounterexample_allNaturalTrios'
+                   a (minusInteger ds lvl1) a)
+          }
+          } } in
+    case tagToEnum# wild of _ {
+      False -> fail void#;
+      True ->
+        case eqInteger# ds1 friedmanCounterexample2 of wild2 { __DEFAULT ->
+        case tagToEnum# wild2 of _ {
+          False -> fail void#;
+          True ->
+            : (a, friedmanCounterexample2, friedmanCounterexample2)
+              (friedmanCounterexample_allNaturalTrios'
+                 (plusInteger a lvl1) (plusInteger a lvl1) (plusInteger a lvl1))
+        }
+        }
+    }
+    }
+end Rec }
+
+Rec {
+-- RHS size: {terms: 18, types: 4, coercions: 0}
+factorial :: Integer -> Integer
+factorial =
+  \ (ds :: Integer) ->
+    case eqInteger# ds friedmanCounterexample2 of wild { __DEFAULT ->
+    case tagToEnum# wild of _ {
+      False -> timesInteger ds (factorial (minusInteger ds lvl1));
+      True -> lvl1
+    }
+    }
+end Rec }
+
+-- RHS size: {terms: 4, types: 7, coercions: 0}
+lvl4 :: forall a. [Set a]
+lvl4 = \ (@ a) -> : [] []
+
+Rec {
+-- RHS size: {terms: 42, types: 41, coercions: 0}
+allSubsetsWithSize :: forall a. Set a -> Integer -> [Set a]
+allSubsetsWithSize =
+  \ (@ a) (set :: Set a) (ds :: Integer) ->
+    case eqInteger# ds friedmanCounterexample2 of wild { __DEFAULT ->
+    case tagToEnum# wild of _ {
+      False ->
+        case set of _ {
+          [] -> [];
+          : item rest ->
+            let {
+              z :: [[a]]
+              z = allSubsetsWithSize rest ds } in
+            letrec {
+              go :: [[a]] -> [[a]]
+              go =
+                \ (ds1 :: [[a]]) ->
+                  case ds1 of _ {
+                    [] -> z;
+                    : y ys -> : (: item y) (go ys)
+                  }; } in
+            go (allSubsetsWithSize rest (minusInteger ds lvl1))
+        };
+      True -> lvl4
+    }
+    }
+end Rec }
+
+-- RHS size: {terms: 26, types: 18, coercions: 0}
+allSubsetsWithSizeAtMostK :: forall a. Set a -> Integer -> [Set a]
+allSubsetsWithSizeAtMostK =
+  \ (@ a) (set :: Set a) (k :: Integer) ->
+    letrec {
+      go :: Integer -> [Set a]
+      go =
+        \ (x :: Integer) ->
+          case gtInteger# x k of wild { __DEFAULT ->
+          case tagToEnum# wild of _ {
+            False ->
+              ++ (allSubsetsWithSize set x) (go (plusInteger x $fEnumInteger1));
+            True -> []
+          }
+          }; } in
+    go friedmanCounterexample2
+
+-- RHS size: {terms: 2, types: 0, coercions: 0}
+$trModule1 :: TrName
+$trModule1 = TrNameS "Friedman"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0}
+$trModule2 :: TrName
+$trModule2 = TrNameS "main"#
+
+-- RHS size: {terms: 3, types: 0, coercions: 0}
+$trModule :: Module
+$trModule = Module $trModule2 $trModule1
+
+-- RHS size: {terms: 11, types: 6, coercions: 0}
+$s$fEq(,)_$s$fEq[]_$c/= :: [Integer] -> [Integer] -> Bool
+$s$fEq(,)_$s$fEq[]_$c/= =
+  \ (x :: [Integer]) (y :: [Integer]) ->
+    case $fEq[]_$c== $fEqInteger x y of _ {
+      False -> True;
+      True -> False
+    }
+
+-- RHS size: {terms: 2, types: 1, coercions: 0}
+lvl5 :: [Integer] -> [Integer] -> Bool
+lvl5 = $fEq[]_$c== $fEqInteger
+
+-- RHS size: {terms: 3, types: 2, coercions: 0}
+$s$fEq(,)_$s$fEq[] :: Eq [Integer]
+$s$fEq(,)_$s$fEq[] = C:Eq lvl5 $s$fEq(,)_$s$fEq[]_$c/=
+
+-- RHS size: {terms: 1, types: 0, coercions: 0}
+$s$fEq(,)1 :: Eq [Integer]
+$s$fEq(,)1 = $s$fEq(,)_$s$fEq[]
+
+-- RHS size: {terms: 16, types: 11, coercions: 0}
+$wlvl :: [Integer] -> [Integer] -> [Integer] -> [Integer] -> Bool
+$wlvl =
+  \ (ww :: [Integer])
+    (ww1 :: [Integer])
+    (ww2 :: [Integer])
+    (ww3 :: [Integer]) ->
+    case $fEq[]_$c== $fEqInteger ww ww2 of _ {
+      False -> False;
+      True -> $fEq[]_$c== $fEqInteger ww1 ww3
+    }
+
+-- RHS size: {terms: 13, types: 28, coercions: 0}
+lvl6 :: ([Integer], [Integer]) -> ([Integer], [Integer]) -> Bool
+lvl6 =
+  \ (w :: ([Integer], [Integer])) (w1 :: ([Integer], [Integer])) ->
+    case w of _ { (ww1, ww2) ->
+    case w1 of _ { (ww4, ww5) -> $wlvl ww1 ww2 ww4 ww5 }
+    }
+
+-- RHS size: {terms: 21, types: 12, coercions: 0}
+$wlvl1 :: [Integer] -> [Integer] -> [Integer] -> [Integer] -> Bool
+$wlvl1 =
+  \ (ww :: [Integer])
+    (ww1 :: [Integer])
+    (ww2 :: [Integer])
+    (ww3 :: [Integer]) ->
+    case $fEq[]_$c== $fEqInteger ww ww2 of _ {
+      False -> True;
+      True ->
+        case $fEq[]_$c== $fEqInteger ww1 ww3 of _ {
+          False -> True;
+          True -> False
+        }
+    }
+
+-- RHS size: {terms: 13, types: 28, coercions: 0}
+lvl7 :: ([Integer], [Integer]) -> ([Integer], [Integer]) -> Bool
+lvl7 =
+  \ (w :: ([Integer], [Integer])) (w1 :: ([Integer], [Integer])) ->
+    case w of _ { (ww1, ww2) ->
+    case w1 of _ { (ww4, ww5) -> $wlvl1 ww1 ww2 ww4 ww5 }
+    }
+
+-- RHS size: {terms: 3, types: 5, coercions: 0}
+$s$fEq(,) :: Eq ([Integer], [Integer])
+$s$fEq(,) = C:Eq lvl6 lvl7
+
+Rec {
+-- RHS size: {terms: 328, types: 321, coercions: 27}
+$wgo
+  :: [(Integer, Integer, Integer)] -> (# Integer, Integer, Integer #)
+$wgo =
+  \ (w :: [(Integer, Integer, Integer)]) ->
+    case w of _ {
+      [] -> case badHead of wild1 { };
+      : y ys ->
+        case y of _ { (k, n, r) ->
+        let {
+          vertices :: [Set Integer]
+          vertices =
+            allSubsetsWithSizeAtMostK
+              (: friedmanCounterexample2
+                 (let {
+                    eightKN :: Integer
+                    eightKN = timesInteger (timesInteger lvl k) n } in
+                  let {
+                    lvl8 :: [Integer]
+                    lvl8 = enumDeltaToInteger1 lvl1 (timesInteger eightKN r) } in
+                  let {
+                    lvl9 :: Integer
+                    lvl9 = factorial (factorial (timesInteger eightKN r)) } in
+                  let {
+                    c :: Integer -> [Integer] -> [Integer]
+                    c =
+                      \ (ds :: Integer) (ds1 :: [Integer]) ->
+                        let {
+                          lvl10 :: Integer
+                          lvl10 = timesInteger ds lvl9 } in
+                        letrec {
+                          go :: [Integer] -> [Integer]
+                          go =
+                            \ (ds2 :: [Integer]) ->
+                              case ds2 of _ {
+                                [] -> ds1;
+                                : y1 ys1 ->
+                                  let {
+                                    lvl11 :: Integer
+                                    lvl11 =
+                                      timesInteger lvl10 (factorial (timesInteger eightKN y1)) } in
+                                  let {
+                                    z :: [Integer]
+                                    z = go ys1 } in
+                                  letrec {
+                                    go1 :: [Integer] -> [Integer]
+                                    go1 =
+                                      \ (ds3 :: [Integer]) ->
+                                        case ds3 of _ {
+                                          [] -> z;
+                                          : y2 ys2 ->
+                                            case eqInteger# (gcdInteger y1 y2) lvl1
+                                            of wild4 { __DEFAULT ->
+                                            case tagToEnum# wild4 of _ {
+                                              False -> go1 ys2;
+                                              True ->
+                                                : (let {
+                                                     ds4 :: Integer
+                                                     ds4 = factorial (timesInteger eightKN y2) } in
+                                                   case eqInteger# ds4 friedmanCounterexample2
+                                                   of wild6 { __DEFAULT ->
+                                                   case tagToEnum# wild6 of _ {
+                                                     False -> divInteger lvl11 ds4;
+                                                     True -> divZeroError
+                                                   }
+                                                   })
+                                                  (go1 ys2)
+                                            }
+                                            }
+                                        }; } in
+                                  go1 lvl8
+                              }; } in
+                        go lvl8 } in
+                  c lvl1 (c lvl3 [])))
+              k } in
+        let {
+          lvl8 :: Integer
+          lvl8 = timesInteger (timesInteger lvl k) n } in
+        let {
+          lvl9 :: [Integer]
+          lvl9 = enumDeltaToInteger1 friedmanCounterexample2 n } in
+        letrec {
+          go :: [[Integer]] -> [Integer]
+          go =
+            \ (ds :: [[Integer]]) ->
+              case ds of _ {
+                [] -> lvl9;
+                : y1 ys1 -> ++ y1 (go ys1)
+              }; } in
+        let {
+          lvl10 :: [Integer]
+          lvl10 =
+            enumDeltaToInteger1
+              lvl1
+              (factorial
+                 (timesInteger (timesInteger (timesInteger lvl k) n) r)) } in
+        let {
+          lvl11 :: [Set [Integer]]
+          lvl11 = allSubsetsWithSize vertices r } in
+        letrec {
+          go1 :: [Set Integer] -> All
+          go1 =
+            \ (ds :: [Set Integer]) ->
+              case ds of _ {
+                [] -> True `cast` ...;
+                : y1 ys1 ->
+                  case elem $s$fEq(,)_$s$fEq[] (map lvl2 y1) vertices of _ {
+                    False -> False `cast` ...;
+                    True -> go1 ys1
+                  }
+              }; } in
+        letrec {
+          go2 :: [Graph [Integer]] -> Any
+          go2 =
+            \ (ds :: [Graph [Integer]]) ->
+              case ds of _ {
+                [] -> False `cast` ...;
+                : y1 ys1 ->
+                  case filter
+                         (\ (x :: [Set Integer]) ->
+                            case (go1 x) `cast` ... of _ {
+                              False -> False;
+                              True ->
+                                letrec {
+                                  go3 :: [Integer] -> All
+                                  go3 =
+                                    \ (ds1 :: [Integer]) ->
+                                      case ds1 of _ {
+                                        [] -> True `cast` ...;
+                                        : y2 ys2 ->
+                                          let {
+                                            xsNode :: Set Node
+                                            xsNode =
+                                              genericTake
+                                                $fIntegralInteger
+                                                (factorial (timesInteger lvl8 y2))
+                                                x } in
+                                          letrec {
+                                            go4 :: [[Integer]] -> All
+                                            go4 =
+                                              \ (ds2 :: [[Integer]]) ->
+                                                case ds2 of _ {
+                                                  [] -> True `cast` ...;
+                                                  : y3 ys3 ->
+                                                    let {
+                                                      lvl12 :: [Integer]
+                                                      lvl12 = reverse1 y3 [] } in
+                                                    letrec {
+                                                      go5 :: [[Integer]] -> Any
+                                                      go5 =
+                                                        \ (ds3 :: [[Integer]]) ->
+                                                          case ds3 of _ {
+                                                            [] -> False `cast` ...;
+                                                            : y4 ys4 ->
+                                                              case $fEq[]_$c== $fEqInteger y4 y3
+                                                              of _ {
+                                                                False ->
+                                                                  case $fOrd[]_$ccompare
+                                                                         $fOrdInteger
+                                                                         (reverse1 y4 [])
+                                                                         lvl12
+                                                                  of _ {
+                                                                    __DEFAULT ->
+                                                                      case elem
+                                                                             $s$fEq(,) (y4, y3) y1
+                                                                      of _ {
+                                                                        False -> go5 ys4;
+                                                                        True -> True `cast` ...
+                                                                      };
+                                                                    GT -> go5 ys4
+                                                                  };
+                                                                True -> True `cast` ...
+                                                              }
+                                                          }; } in
+                                                    case (go5 xsNode) `cast` ... of _ {
+                                                      False -> False `cast` ...;
+                                                      True -> go4 ys3
+                                                    }
+                                                }; } in
+                                          case (go4
+                                                  (allSubsetsWithSizeAtMostK
+                                                     (nubBy
+                                                        eqInteger
+                                                        (go (genericTake $fIntegralInteger y2 x)))
+                                                     k))
+                                               `cast` ...
+                                          of _ {
+                                            False -> False `cast` ...;
+                                            True -> go3 ys2
+                                          }
+                                      }; } in
+                                (go3 lvl10) `cast` ...
+                            })
+                         lvl11
+                  of _ {
+                    [] -> go2 ys1;
+                    : ds1 ds2 -> True `cast` ...
+                  }
+              }; } in
+        letrec {
+          go3 :: [Set Integer] -> [(Set Integer, Set Integer)]
+          go3 =
+            \ (ds :: [Set Integer]) ->
+              case ds of _ {
+                [] -> [];
+                : y1 ys1 ->
+                  let {
+                    z :: [(Set Integer, Set Integer)]
+                    z = go3 ys1 } in
+                  letrec {
+                    go4 :: [Set Integer] -> [(Set Integer, Set Integer)]
+                    go4 =
+                      \ (ds1 :: [Set Integer]) ->
+                        case ds1 of _ {
+                          [] -> z;
+                          : y2 ys2 ->
+                            case $fOrd[]_$ccompare $fOrdInteger y1 y2 of _ {
+                              __DEFAULT -> go4 ys2;
+                              GT -> : (y1, y2) (go4 ys2)
+                            }
+                        }; } in
+                  go4 vertices
+              }; } in
+        let {
+          set :: Set (Set Integer, Set Integer)
+          set = go3 vertices } in
+        case (go2
+                (allSubsetsWithSizeAtMostK
+                   set (strictGenericLength $fNumInteger set)))
+             `cast` ...
+        of _ {
+          False -> $wgo ys;
+          True -> (# k, n, r #)
+        }
+        }
+    }
+end Rec }
+
+-- RHS size: {terms: 4, types: 0, coercions: 0}
+friedmanCounterexample1 :: [(Integer, Integer, Integer)]
+friedmanCounterexample1 =
+  friedmanCounterexample_allNaturalTrios'
+    friedmanCounterexample2
+    friedmanCounterexample2
+    friedmanCounterexample2
+
+-- RHS size: {terms: 8, types: 13, coercions: 0}
+friedmanCounterexample :: (Integer, Integer, Integer)
+friedmanCounterexample =
+  case $wgo friedmanCounterexample1 of _ { (# ww1, ww2, ww3 #) ->
+  (ww1, ww2, ww3)
+  }
+
+
+------ Local rules for imported ids --------
+"SPEC/Friedman $fEq(,) @ [Integer] @ [Integer]" [ALWAYS]
+    forall ($dEq1 :: Eq [Integer]) ($dEq :: Eq [Integer]).
+      $fEq(,) $dEq $dEq1
+      = $s$fEq(,)
+"SPEC/Friedman $fEq[]_$c/= @ Integer" [ALWAYS]
+    forall ($dEq :: Eq Integer).
+      $fEq[]_$c/= $dEq
+      = $s$fEq(,)_$s$fEq[]_$c/=
+"SPEC/Friedman $fEq[] @ Integer" [ALWAYS]
+    forall ($dEq :: Eq Integer). $fEq[] $dEq = $s$fEq(,)_$s$fEq[]

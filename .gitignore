@@ -1,3 +1,5 @@
 .stack-work/
 buck-laconic.cabal
 *~
+*.hi
+*.o

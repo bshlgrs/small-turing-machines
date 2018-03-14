@@ -1,5 +1,5 @@
 module Friedman (
-
+  friedmanCounterexample
 ) where
 
 -- import Show
