@@ -2,7 +2,23 @@ module Friedman (
 
 ) where
 
-import Data.List (nub, genericTake)
+-- import Show
+import Data.Bool
+
+import Data.Bits
+import Data.Word
+import Data.Char
+import Prelude (
+  -- Mathematical operators
+  (+), (-), (*), (/), mod, div, gcd, (==), (<), (>), (<=), (>=),
+  -- Haskell necessities that won't be compiled
+  Integer, Show, Eq, Ord,
+  -- List functions
+  (++), and, concat, filter, all, elem, null, any, head, concatMap, reverse, map, or,
+  -- Specialized stuff
+  ($), return, fst, snd)
+import Data.List (nub, genericTake, genericLength)
+
 type Set a = [a]
 type Graph a = [(a, a)]
 
@@ -24,7 +40,7 @@ allSubsetsWithSize (item:rest) size = subsetsUsingItem ++ subsetsNotUsingItem
     subsetsNotUsingItem = allSubsetsWithSize rest size
 
 allSubsets :: Set a -> [Set a]
-allSubsets set = allSubsetsWithSizeAtMostK set (fromIntegral $ length set)
+allSubsets set = allSubsetsWithSizeAtMostK set (genericLength set)
 
 allBinaryListsOfLength :: Integer -> [[Bool]]
 allBinaryListsOfLength 0 = [[]]
@@ -54,17 +70,11 @@ setReducesOtherSet graph xsNode ysNode =
     )
     ysNode
 
--- allRationalsWithBoundedComplexity :: Integer -> Set Rational
--- allRationalsWithBoundedComplexity k = (Rational 0 1) : [Rational (sign * n) d
---                                     | n <- [1..k], d <- [1..k], sign <- [1, -1],
---                                     gcd n d == 1]
-
-
 type Node = [Integer]
 
 orderEquivalent :: Ord a => (Set a, Set a) -> (Set a, Set a) -> Bool
-orderEquivalent (a, b) (c, d) = length a == length c
-                              && length b == length d
+orderEquivalent (a, b) (c, d) = genericLength a == genericLength c
+                              && genericLength b == genericLength d
                               && orderingList a b == orderingList c d
   where
     orderingList :: (Ord a) => [a] -> [a] -> [Bool]
@@ -72,8 +82,6 @@ orderEquivalent (a, b) (c, d) = length a == length c
 
 allVertices :: Eq a => Graph a -> [a]
 allVertices graph = nub $ concatMap (\x -> [fst x, snd x]) graph
-
-
 
 graphIsOrderInvariant :: Ord a => Graph [a] -> Bool
 graphIsOrderInvariant graph = and fourTupleOfEdgesIsOrderEquivalent
@@ -90,11 +98,6 @@ graphIsOrderInvariant graph = and fourTupleOfEdgesIsOrderEquivalent
 --- I think the paper is ambiguous about how to define this
 leqRlex :: Ord a => [a] -> [a] -> Bool
 leqRlex x y = (reverse x) <= (reverse y)
-
--- checkThirdGraphValidityClaim :: Graph [a] ->
-
-
-----------
 
 allNaturalTrios :: [(Integer, Integer, Integer)]
 allNaturalTrios = allNaturalTrios' 0 0 0
@@ -119,9 +122,9 @@ checkTrio (k, n, r) = any (\edges -> isValidGraph vertices edges k n r) edgeSele
     vertices = allSubsetsWithSizeAtMostK numbers k
     edgeSelections = allSubsets [(x, y) | x <- vertices, y <- vertices, x > y]
 
-
+-- returns true if there is a
 isValidGraph :: [[Integer]] -> Graph [Integer] -> Integer -> Integer -> Integer -> Bool
-isValidGraph vertices edges k n r = undefined
+isValidGraph vertices edges k n r = not (null subsetsWhichAllReduce)
   where
     lengthRSubsets :: [Set Node]
     lengthRSubsets = allSubsetsWithSize vertices r
