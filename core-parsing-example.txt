@@ -21,3 +21,8 @@
 )
 
 + := \f x y -> x y (\w -> S ((f x2) y))
+
+where
+
+Z := \ifZ ifS -> ifZ
+S := \x -> (\ifZ ifS -> (ifS x))
