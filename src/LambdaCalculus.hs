@@ -28,3 +28,9 @@ applyMany f (x:xs) = applyMany (App f x) xs
 abstractMany :: LambdaTerm -> [String] -> LambdaTerm
 abstractMany term [] = term
 abstractMany term (name:names) = Lam name (abstractMany term names)
+
+size :: LambdaTerm -> Int
+size term = case term of
+  App l r -> 1 + size l + size r
+  Lam _ r -> 1 + size r
+  Var _ -> 1

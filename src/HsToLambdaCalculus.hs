@@ -6,7 +6,7 @@ import Var (varName, Var)
 import Literal (Literal (..))
 import Name (nameStableString)
 import DataCon (dataConName)
-import Outputable (showSDocUnsafe)
+import Outputable (showSDocUnsafe, ppr)
 import HscTypes (mg_binds)
 import Type (pprType)
 import TyCon (tyConName)
@@ -49,21 +49,44 @@ showLiteral lit =  case lit of
   MachDouble double -> show double
   MachChar char -> [char]
   MachStr str -> "(stringlit " ++ show str ++ ")"
-  _ -> error "don't know how to show literal"
+  _ -> showSDocUnsafe (ppr lit)
 
 showBinding :: CoreBndr -> String
 showBinding = nameStableString . varName
 
 main :: IO ()
 main = do
-   core <- compileToCore "ExampleModule"
+   core <- compileToCore "Friedman"
    -- showCoreBind
    sequence $ map (print . compileTopLevelBinding) core
+   print (map (\(_, x) -> L.size x) (concatMap compileTopLevelBinding core))
    return ()
+
+compileModuleToLambdaTermIO :: IO ()
+compileModuleToLambdaTermIO = do
+  core <- compileToCore "ExampleModule"
+  print (compileModuleToLambdaTerm core "mainComputation")
+
+compileModuleToLambdaTerm :: [CoreBind] -> String -> L.LambdaTerm
+compileModuleToLambdaTerm bindings nameOfMainComputation = reduceToSingleTerm orderedLambdaTermGroups
+  where
+    compiledBindings = map compileTopLevelBinding bindings
+    orderedLambdaTermGroups = topoSortGroups compiledBindings nameOfMainComputation
+
+topoSortGroups :: [[(String, L.LambdaTerm)]] -> String -> [[(String, L.LambdaTerm)]]
+topoSortGroups groups mainComputation = error "TODO"
+{-
+This is just a DFS.
+
+what if the main function is mutually recursive???
+-}
+
+reduceToSingleTerm :: [[(String, L.LambdaTerm)]] -> L.LambdaTerm
+reduceToSingleTerm groups = error "TODO"
 
 printCore :: IO ()
 printCore = do
-   core <- compileToCore "ExampleModule"
+   core <- compileToCore "Friedman"
    sequence $ map (putStrLn . showCoreBind) core
    return ()
 
