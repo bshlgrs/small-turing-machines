@@ -13,7 +13,7 @@ import TyCon (tyConName)
 import CoreSyn
 import DynFlags
 import Control.Monad ((<=<))
-import Data.List (intersperse, find)
+import Data.List (intersperse, find, isInfixOf)
 import qualified LambdaCalculus as L
 
 ------- This is copied from StackOverflow
@@ -70,18 +70,18 @@ printCore = do
 compileTopLevelBinding :: CoreBind -> [(String, L.LambdaTerm)]
 compileTopLevelBinding coreBind = case coreBind of
   (NonRec binding e) -> let name = varToStr binding in
-    if name == "$main$ExampleModule$decrement"
-    then [(name, compileCoreExpr e)]
-    else []
+    if ("$$" `isInfixOf` name)
+    then []
+    else [(name, cleanUpNonsense (compileCoreExpr e))]
   (Rec [(binding, expr)]) -> [(name, compiledExpr)]
     where
       name = varToStr binding
-      exprBody = compileCoreExpr expr
+      exprBody = cleanUpNonsense (compileCoreExpr expr)
       compiledExpr = L.App
                        (L.Lam dummyVar (L.App (L.Var dummyVar) (L.Var dummyVar)))
                        (L.Lam name exprBody)
       dummyVar = L.newName exprBody
-  (Rec multipleBindings) -> []
+  (Rec multipleBindings) -> error "don't know how to handle mutual recursion"
 
 compileBinding :: CoreBind -> [(String, L.LambdaTerm)]
 compileBinding coreBind = case coreBind of
@@ -111,9 +111,11 @@ compileCoreExpr expr = case expr of
   (Lam var e) -> L.Lam (varToStr var) (compileCoreExpr e)
   (Var var) -> L.Var (varToStr var)
   (Let binding e) -> case compileBinding binding of
+    [("$_sys$fail", lambdaTerm)] -> compileCoreExpr e
     [(name, lambdaTerm)] -> L.App (L.Lam name (compileCoreExpr e)) lambdaTerm
     _ -> undefined
   (Case e _ _ alts) -> compileAlts (compileCoreExpr e) alts
+  _ -> error ("new thing: " ++ showCoreExpr expr)
 
 varToStr :: Var -> String
 varToStr = nameStableString . varName
@@ -169,11 +171,11 @@ Todo:
 
 - In the case where there's literal expressions being used, compile those to a
   series of if expressions
-- In the case where it's a bunch of data constructors, then you put them in the
-  right order, and then call expr on that list. You sub in the value of the
-  DEFAULT case wherever needed.
-    - Difficulties:
-      - I don't know how to find the order of the constructors used for the
-        datatype. I'm going to try looking at the `dataConTyCon` of the
-        constructors.
 -}
+
+cleanUpNonsense :: L.LambdaTerm -> L.LambdaTerm
+cleanUpNonsense term = case term of
+  (L.App x (L.App (L.Var "$_sys$fail") (L.Var "$ghc-prim$GHC.Prim$void#"))) -> cleanUpNonsense x
+  (L.App x y) -> L.App (cleanUpNonsense x) (cleanUpNonsense y)
+  (L.Lam name term2) -> L.Lam name (cleanUpNonsense term2)
+  (L.Var _) -> term
