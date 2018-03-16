@@ -10,6 +10,7 @@ todo:
     - `let x = y in z` becomes `App (Abs x z) y`
     - Case statements turn into function calls on the object being matched (which can be a bool)
   - There's some trickiness here about generic functions
+  - Also there's a bit of subtlety in turning a library into a single lambda expression
 - Translate lambda calculus to SKI.
   - I think I've done this before; it's not very hard.
   - I'm worried that it gives you a quadratic increase in program size. But I think there might be ways of getting around that. There are papers about making it only n log(n), which I think is the best you can do.

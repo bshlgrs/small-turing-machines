@@ -1,24 +1,29 @@
 module HsToLambdaCalculus where
 
-import GHC
+import GHC (runGhc, mkModuleName, getModSummary, parseModule, typecheckModule,
+  desugarModule, coreModule, DataCon, TyCon, dataConTyCon, tyConDataCons,
+  LoadHowMuch(LoadAllTargets), load, setSessionDynFlags, getSessionDynFlags,
+  setTargets, guessTarget, dm_core_module)
 import GHC.Paths (libdir)
 import Var (varName, Var)
 import Literal (Literal (..))
-import Name (nameStableString)
-import DataCon (dataConName)
+import Name (nameOccName, occNameString, isTyVarName, isTyConName, isDataConName, isValName, isVarName, isSystemName)
+import DataCon (dataConName, dataConSourceArity)
 import Outputable (showSDocUnsafe, ppr)
-import HscTypes (mg_binds)
+import HscTypes (mg_binds, mg_tcs)
 import Type (pprType)
 import TyCon (tyConName)
 import CoreSyn
 import DynFlags
 import Control.Monad ((<=<))
-import Data.List (intersperse, find, isInfixOf)
+import Data.List (intersperse, find, isInfixOf, nub)
+import Data.Maybe (fromMaybe)
 import qualified LambdaCalculus as L
+import Debug.Trace (traceShowId)
 
 ------- This is copied from StackOverflow
 
-compileToCore :: String -> IO [CoreBind]
+compileToCore :: String -> IO ([CoreBind], [TyCon])
 compileToCore modName = runGhc (Just libdir) $ do
     setSessionDynFlags =<< getSessionDynFlags
     let location = "src/" ++ modName
@@ -26,15 +31,15 @@ compileToCore modName = runGhc (Just libdir) $ do
     setTargets [target]
     load LoadAllTargets
     ds <- desugarModule <=< typecheckModule <=< parseModule <=< getModSummary $ mkModuleName modName
-    return $ mg_binds . coreModule $ ds
+    return (mg_binds (coreModule ds), mg_tcs (dm_core_module ds))
 
 ----- https://downloads.haskell.org/~ghc/7.6.2/docs/html/libraries/ghc/CoreSyn.html
 
 showCoreBind :: CoreBind -> String
 showCoreBind x = case x of
-  (NonRec binding expr) -> showBinding binding ++ " := " ++ showCoreExpr expr
+  (NonRec binding expr) -> varToStr binding ++ " := " ++ showCoreExpr expr
   (Rec list) -> "(Rec [" ++ concat (intersperse ", "
-    (map (\(b, e) -> showBinding b ++ " := " ++ showCoreExpr e) list)) ++ "])"
+    (map (\(b, e) -> varToStr b ++ " := " ++ showCoreExpr e) list)) ++ "])"
 
 
 showLiteral :: Literal -> String
@@ -51,49 +56,111 @@ showLiteral lit =  case lit of
   MachStr str -> "(stringlit " ++ show str ++ ")"
   _ -> showSDocUnsafe (ppr lit)
 
-showBinding :: CoreBndr -> String
-showBinding = nameStableString . varName
 
 main :: IO ()
 main = do
-   core <- compileToCore "Friedman"
+   (core, tyCons) <- compileToCore "ExampleModule"
    -- showCoreBind
    sequence $ map (print . compileTopLevelBinding) core
-   print (map (\(_, x) -> L.size x) (concatMap compileTopLevelBinding core))
+   print (map (\list -> map (\(name, x) -> (name, L.names x)) list) (map compileTopLevelBinding core))
+   print (map makeDataConstructorTermsFromTyCon tyCons)
    return ()
+
+makeDataConstructorTermsFromTyCon :: TyCon -> [(String, L.LambdaTerm)]
+makeDataConstructorTermsFromTyCon tyCon = map compileDataCon dataCons
+  where
+    dataCons :: [DataCon]
+    dataCons = tyConDataCons tyCon
+
+    compileDataCon :: DataCon -> (String, L.LambdaTerm)
+    compileDataCon dataCon = (dataConNameString dataCon, term)
+        where
+          term :: L.LambdaTerm
+          term = L.abstractMany
+            (callbackWrapper
+              (L.applyMany (L.Var ("$$if" ++ myName)) (map L.Var myVars)))
+              myVars
+
+          myVars :: [String]
+          myVars = ["$$var" ++ show i | i <- [1..dataConSourceArity dataCon]]
+
+          myName :: String
+          myName = dataConNameString dataCon
+
+    callbackWrapper :: L.LambdaTerm -> L.LambdaTerm
+    callbackWrapper t = L.abstractMany t ["$$if" ++ dataConNameString d | d <- dataCons]
+
+dataConNameString :: DataCon -> String
+dataConNameString = occNameString . nameOccName . dataConName
 
 compileModuleToLambdaTermIO :: IO ()
 compileModuleToLambdaTermIO = do
-  core <- compileToCore "ExampleModule"
-  print (compileModuleToLambdaTerm core "mainComputation")
+  (core, tyCons) <- compileToCore "ExampleModule"
+  print (compileModuleToLambdaTerm core tyCons "mainVal")
 
-compileModuleToLambdaTerm :: [CoreBind] -> String -> L.LambdaTerm
-compileModuleToLambdaTerm bindings nameOfMainComputation = reduceToSingleTerm orderedLambdaTermGroups
+type Group = [(String, L.LambdaTerm)]
+
+compileModuleToLambdaTerm :: [CoreBind] -> [TyCon] -> String -> L.LambdaTerm
+compileModuleToLambdaTerm bindings tyCons nameOfMainFn = reduceToSingleTerm orderedLambdaTermGroups
   where
+    ------------- TODO: also, find all data constructors referred to, and build their definitions
+    compiledBindings :: [Group]
     compiledBindings = map compileTopLevelBinding bindings
-    orderedLambdaTermGroups = topoSortGroups compiledBindings nameOfMainComputation
+    compiledDataConstructors :: [Group]
+    compiledDataConstructors =
+          map (\x -> [x]) (concatMap makeDataConstructorTermsFromTyCon tyCons)
 
-topoSortGroups :: [[(String, L.LambdaTerm)]] -> String -> [[(String, L.LambdaTerm)]]
-topoSortGroups groups mainComputation = error "TODO"
-{-
-This is just a DFS.
+    orderedLambdaTermGroups =
+      topoSortGroups (compiledBindings ++ compiledDataConstructors) nameOfMainFn
 
-what if the main function is mutually recursive???
--}
+allPatternMatchedTypesInModule :: [CoreBind] -> [TyCon]
+allPatternMatchedTypesInModule binds = nub $ concatMap allPatternMatchedTypes binds
+  where
+    allPatternMatchedTypes :: CoreBind -> [TyCon]
+    allPatternMatchedTypes = error "TODO"
+
+topoSortGroups :: [Group] -> String -> [Group]
+topoSortGroups groups mainFn = reverse (topohelper [] (children mainFnGroup) mainFnGroup)
+  where
+    mainFnGroup = groupForFunction mainFn
+
+    definedFunctions :: Group -> [String]
+    definedFunctions list = map fst list
+
+    usedFunctions :: Group -> [String]
+    usedFunctions list = concatMap (L.names . snd) list
+
+    groupForFunction :: String -> Group
+    groupForFunction fName = fromMaybe (error ("Function " ++ fName ++ " wasn't found"))
+                              $ find (\x -> fName `elem` definedFunctions x) groups
+
+    topohelper :: [Group] -> [Group] -> Group -> [Group]
+    topohelper explored [] goal = goal : explored
+    topohelper explored (x:xs) goal
+      | x `elem` explored = topohelper explored xs goal
+      | otherwise         = topohelper (topohelper explored (children x) x) xs goal
+
+    children :: Group -> [Group]
+    children group = nub $ [groupForFunction usedFunction |
+                              usedFunction <- usedFunctions group]
 
 reduceToSingleTerm :: [[(String, L.LambdaTerm)]] -> L.LambdaTerm
-reduceToSingleTerm groups = error "TODO"
+reduceToSingleTerm [] = error "can't reduce empty list"
+reduceToSingleTerm [[(name, term)]] = term
+reduceToSingleTerm ([(name, term)]: others) =
+                            L.App (L.Lam name (reduceToSingleTerm others)) term
+reduceToSingleTerm (_: others) = error "can't handle mutually recursive functions yet"
 
 printCore :: IO ()
 printCore = do
-   core <- compileToCore "Friedman"
+   (core, _) <- compileToCore "ExampleModule"
    sequence $ map (putStrLn . showCoreBind) core
    return ()
 
 compileTopLevelBinding :: CoreBind -> [(String, L.LambdaTerm)]
 compileTopLevelBinding coreBind = case coreBind of
   (NonRec binding e) -> let name = varToStr binding in
-    if ("$$" `isInfixOf` name)
+    if ("$" `isInfixOf` name)
     then []
     else [(name, cleanUpNonsense (compileCoreExpr e))]
   (Rec [(binding, expr)]) -> [(name, compiledExpr)]
@@ -101,15 +168,24 @@ compileTopLevelBinding coreBind = case coreBind of
       name = varToStr binding
       exprBody = cleanUpNonsense (compileCoreExpr expr)
       compiledExpr = L.App
-                       (L.Lam dummyVar (L.App (L.Var dummyVar) (L.Var dummyVar)))
-                       (L.Lam name exprBody)
-      dummyVar = L.newName exprBody
+                        -- this is the Y combinator
+                        (L.Lam varFName
+                          (L.App
+                            (L.Lam varXName (L.App varF (L.App varX varX)))
+                            (L.Lam varXName (L.App varF (L.App varX varX)))
+                          )
+                        )
+                        (L.Lam name exprBody)
+      varFName = L.newName exprBody
+      varF = L.Var varFName
+      varXName = L.newName (L.App exprBody varF)
+      varX = L.Var varXName
   (Rec multipleBindings) -> error "don't know how to handle mutual recursion"
 
 compileBinding :: CoreBind -> [(String, L.LambdaTerm)]
 compileBinding coreBind = case coreBind of
-  (NonRec binding e) -> [(nameStableString (varName binding), compileCoreExpr e)]
-  _ -> undefined
+  (NonRec bindingVar e) -> [(varToStr bindingVar, compileCoreExpr e)]
+  _ -> compileTopLevelBinding coreBind
 
 showCoreExpr :: Expr CoreBndr -> String
 showCoreExpr expr = case expr of
@@ -120,7 +196,7 @@ showCoreExpr expr = case expr of
       showSDocUnsafe (pprType exprType), " "] ++
       ["["] ++ (map showAlt alts) ++ ["])"])
   (Let b e) -> concat ["(Let ", showCoreBind b, " ", showCoreExpr e, ")"]
-  (Lam var e) -> concat ["(Lam ", nameStableString (varName var), " ", showCoreExpr e, ")"]
+  (Lam var e) -> concat ["(Lam ", varToStr var, " ", showCoreExpr e, ")"]
   (Cast _ _) -> "Cast"
   (Tick _ _) -> "Tick"
   (Var var) -> varToStr var
@@ -136,31 +212,25 @@ compileCoreExpr expr = case expr of
   (Let binding e) -> case compileBinding binding of
     [("$_sys$fail", lambdaTerm)] -> compileCoreExpr e
     [(name, lambdaTerm)] -> L.App (L.Lam name (compileCoreExpr e)) lambdaTerm
-    _ -> undefined
+    _ -> error "can't compile more complicated let expressions"
   (Case e _ _ alts) -> compileAlts (compileCoreExpr e) alts
   _ -> error ("new thing: " ++ showCoreExpr expr)
 
 varToStr :: Var -> String
-varToStr = nameStableString . varName
+varToStr var = occNameString (nameOccName name)
+  where
+    name = varName var
 
 showAlt :: Alt CoreBndr -> String
 showAlt (altCon, vars, expr) = "(Alt " ++ altConStr ++ " " ++
                                           namesStr ++ " " ++ showCoreExpr expr ++ ")"
   where
     altConStr = case altCon of
-      (DataAlt dataCon) -> "(Datacon " ++ nameStableString (dataConName dataCon)
-                            ++ " ----" ++ typeConName ++ " WOW " ++ otherDataConsStr ++ ")"
-        where
-          typeConName = nameStableString (tyConName tyCon)
-          tyCon :: TyCon
-          tyCon = dataConTyCon dataCon
-          otherDataCons :: [DataCon]
-          otherDataCons = tyConDataCons tyCon
-          otherDataConsStr = concat (intersperse ", " (map (nameStableString . dataConName) otherDataCons))
+      (DataAlt dataCon) -> "(Datacon " ++ dataConNameString dataCon ++ ")"
       (LitAlt literal) -> showLiteral literal
       (DEFAULT) -> "DEFAULT"
 
-    namesStr = "[" ++ concat (intersperse ", " (map (nameStableString . varName) vars)) ++ "]"
+    namesStr = "[" ++ concat (intersperse ", " (map varToStr vars)) ++ "]"
 
 
 compileAlts :: L.LambdaTerm -> [Alt CoreBndr] -> L.LambdaTerm
@@ -170,7 +240,6 @@ compileAlts inExpr cases = case cases of
     compileDataAlts (tyConDataCons (dataConTyCon dataCon)) (Just defaultExpr) inExpr (tail cases)
   (LitAlt _, _, _):_ -> error "I don't know how to handle LitAlts"
   (DEFAULT, _, _):(LitAlt _, _, _):_ -> error "I don't know how to handle LitAlts"
-  _ -> undefined
 
 
 compileDataAlts :: [DataCon] -> Maybe CoreExpr -> L.LambdaTerm -> [Alt CoreBndr] -> L.LambdaTerm
@@ -187,7 +256,6 @@ compileDataAlts dataCons mbDefault inExpr cases =
           Just (defaultExpr) -> compileCoreExpr defaultExpr
           Nothing -> error "You didn't have all possible cases filled in, and you didn't have a default case :("
         -- look for this dataCon in cases. If you don't find it, try to use the mbDefault thing.
-
 
 {-
 Todo:

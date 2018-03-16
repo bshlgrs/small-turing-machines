@@ -13,7 +13,7 @@ names term = nub (names' term)
   where
     names' term = case term of
       (App lhs rhs) -> (names' lhs) ++ (names' rhs)
-      (Lam name body) -> delete name (names' body)
+      (Lam name body) -> filter (/= name) (names' body)
       (Var string) -> [string]
 
 newName :: LambdaTerm -> String
@@ -34,3 +34,6 @@ size term = case term of
   App l r -> 1 + size l + size r
   Lam _ r -> 1 + size r
   Var _ -> 1
+
+------- TODO: implement conversion to SKI calculus
+-- eg https://gist.github.com/jozefg/dc5f40c76c94969f9619
