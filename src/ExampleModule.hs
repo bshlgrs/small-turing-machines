@@ -6,8 +6,11 @@ data Bool = True | False
 data Nat = Z | S Nat
 
 -- (&&) :: Bool -> Bool -> Bool
--- (&&) True True = True
--- (&&) _ _ = False
+-- (&&) x y = case (x, y) of
+--   (True, True) -> True
+--   _ -> False
+
+-- mainVal = True && False
 
 -- decrement :: Nat -> Nat
 -- decrement Z = Z
@@ -22,6 +25,11 @@ data Nat = Z | S Nat
 --   (Z, _) -> False
 --   (_, Z) -> False
 --   (S a2, S b2) -> a2 == b2
+
+churchify :: Nat -> (Bool -> Bool) -> Bool -> Bool
+churchify n f z = case n of
+  Z -> z
+  S n -> f (churchify n f z)
 
 (+) :: Nat -> Nat -> Nat
 (+) x y = case x of
@@ -38,8 +46,17 @@ factorial n = case n of
   Z -> S Z
   (S n2) -> n * factorial n2
 
-mainVal :: Nat
-mainVal = factorial (S (S (S (S (S Z)))))
+-- type Church = (Nat -> Nat) -> Nat -> Nat
+
+-- addChurchily :: Church -> Church -> Church
+-- addChurchily m n s z = (m s) (n s z)
+
+-- multiplyChurchily :: Church -> Church -> Church
+-- multiplyChurchily m n s z = m (n s) z
+
+mainVal = churchify (factorial ((S Z + (S (S Z))) + (S (S Z))))
+
+--- multiplyChurchily (\x y -> x (x y)) (\x y -> x (x y))-- churchify (S (S (S Z))) -- (factorial (S (S (S Z)))
 
 -- not True = False
 -- not False = True

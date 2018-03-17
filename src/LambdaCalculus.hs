@@ -37,3 +37,41 @@ size term = case term of
 
 ------- TODO: implement conversion to SKI calculus
 -- eg https://gist.github.com/jozefg/dc5f40c76c94969f9619
+
+lcString :: LambdaTerm -> String
+lcString term = case term of
+  App l r -> lcString l ++ " (" ++ lcString r ++ ")"
+  Lam n r -> "(\\" ++ n ++ " -> " ++ lcString r ++ ")"
+  Var n -> n
+
+renameAll :: LambdaTerm -> LambdaTerm
+renameAll t = snd (renameAllFromNum 0 t)
+  where
+    renameAllFromNum :: Int -> LambdaTerm -> (Int, LambdaTerm)
+    renameAllFromNum n t = case t of
+      Var name -> (n, Var name)
+      Lam currentName body ->
+        let
+          newName = ("v" ++ show n)
+          firstRenamed = replaceName currentName newName body
+          (newNum, fullyRenamed) = renameAllFromNum (n + 1) firstRenamed
+        in
+          (newNum, Lam newName fullyRenamed)
+      App l r ->
+        let
+          (newN, newL) = renameAllFromNum n l
+          (newestN, newR) = renameAllFromNum newN r
+        in
+          (newestN, (App newL newR))
+
+
+replaceName :: String -> String -> LambdaTerm -> LambdaTerm
+replaceName old new t = let replace = replaceName old new in case t of
+  Var v
+    | v == old -> Var new
+    | otherwise -> Var v
+  App x y -> App (replace x) (replace y)
+  Lam n y
+    | n == old -> Lam n y
+    | otherwise -> Lam n (replace y)
+

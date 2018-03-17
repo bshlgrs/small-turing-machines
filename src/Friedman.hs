@@ -164,8 +164,6 @@ allNaturalTrios = allNaturalTrios' 0 0 0
 friedmanCounterexample :: (Integer, Integer, Integer)
 friedmanCounterexample = head $ filter checkTrio allNaturalTrios
 
-mainVal = friedmanCounterexample
-
 -- returns True if the trio contains a counterexample
 checkTrio :: (Integer, Integer, Integer) -> Bool
 checkTrio (k, n, r) = any (\edges -> isValidGraph vertices edges k n r) edgeSelections

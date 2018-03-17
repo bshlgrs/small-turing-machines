@@ -7,7 +7,7 @@ import GHC (runGhc, mkModuleName, getModSummary, parseModule, typecheckModule,
 import GHC.Paths (libdir)
 import Var (varName, Var)
 import Literal (Literal (..))
-import Name (nameOccName, occNameString, isTyVarName, isTyConName, isDataConName, isValName, isVarName, isSystemName)
+import Name (nameOccName, occNameString, isTvOcc, nameStableString)
 import DataCon (dataConName, dataConSourceArity)
 import Outputable (showSDocUnsafe, ppr)
 import HscTypes (mg_binds, mg_tcs)
@@ -91,12 +91,14 @@ makeDataConstructorTermsFromTyCon tyCon = map compileDataCon dataCons
     callbackWrapper t = L.abstractMany t ["$$if" ++ dataConNameString d | d <- dataCons]
 
 dataConNameString :: DataCon -> String
-dataConNameString = occNameString . nameOccName . dataConName
+dataConNameString = nameStableString . dataConName -- occNameString . nameOccName . dataConName
 
 compileModuleToLambdaTermIO :: IO ()
 compileModuleToLambdaTermIO = do
   (core, tyCons) <- compileToCore "ExampleModule"
-  print (compileModuleToLambdaTerm core tyCons "mainVal")
+  putStrLn ("main = " ++ (L.lcString $ compileModuleToLambdaTerm core tyCons "$main$ExampleModule$mainVal"))
+  putStrLn ("main = " ++ (L.lcString $ L.renameAll $ compileModuleToLambdaTerm core tyCons "$main$ExampleModule$mainVal"))
+  putStrLn "main"
 
 type Group = [(String, L.LambdaTerm)]
 
@@ -160,7 +162,7 @@ printCore = do
 compileTopLevelBinding :: CoreBind -> [(String, L.LambdaTerm)]
 compileTopLevelBinding coreBind = case coreBind of
   (NonRec binding e) -> let name = varToStr binding in
-    if ("$" `isInfixOf` name)
+    if ("$$" `isInfixOf` name)
     then []
     else [(name, cleanUpNonsense (compileCoreExpr e))]
   (Rec [(binding, expr)]) -> [(name, compiledExpr)]
@@ -206,18 +208,24 @@ showCoreExpr expr = case expr of
 
 compileCoreExpr :: Expr CoreBndr -> L.LambdaTerm
 compileCoreExpr expr = case expr of
+  (App f (Type t)) -> compileCoreExpr f
   (App f e) -> L.App (compileCoreExpr f) (compileCoreExpr e)
-  (Lam var e) -> L.Lam (varToStr var) (compileCoreExpr e)
-  (Var var) -> L.Var (varToStr var)
+  (Lam var e)
+    | isTvOcc (nameOccName (varName var)) -> compileCoreExpr e
+    | otherwise -> L.Lam (varToStr var) (compileCoreExpr e)
+  (Var var)
+    | varToStr var == "$ghc-prim$GHC.Prim$void#" -> L.Lam "void" (L.Var "void")
+    | varToStr var == "$_sys$GHC.Prim$void#" -> L.Lam "void" (L.Var "void")
+    | otherwise -> L.Var (varToStr var)
   (Let binding e) -> case compileBinding binding of
-    [("$_sys$fail", lambdaTerm)] -> compileCoreExpr e
+    -- [("$_sys$fail", lambdaTerm)] -> compileCoreExpr e
     [(name, lambdaTerm)] -> L.App (L.Lam name (compileCoreExpr e)) lambdaTerm
     _ -> error "can't compile more complicated let expressions"
   (Case e _ _ alts) -> compileAlts (compileCoreExpr e) alts
   _ -> error ("new thing: " ++ showCoreExpr expr)
 
 varToStr :: Var -> String
-varToStr var = occNameString (nameOccName name)
+varToStr var = nameStableString name --occNameString (nameOccName name)
   where
     name = varName var
 
